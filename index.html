@@ -657,9 +657,20 @@
           root.style.removeProperty('--s');
           return;
         }
-        const sx = window.innerWidth / 1920;
-        const sy = window.innerHeight / 1200;
-        const s = Math.min(sx, sy);
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const sx = W / 1920;
+        const sy = H / 1200;
+        // Items are viewport-pinned at the bottom; cap scale so they don't
+        // overlap the QR area (which sits inside the centered, scaled canvas).
+        // QR bottom (viewport y) = H/2 + 208·s
+        // Items top (viewport y) = H − (itemsH + 68)·s
+        // Require gap G ⇒ s ≤ (H/2 − G) / (itemsH + 276)
+        const itemsEl = document.getElementById('items');
+        const itemsH = itemsEl.offsetHeight;
+        const GAP = 48;
+        const sLayout = (H / 2 - GAP) / (itemsH + 276);
+        const s = Math.min(sx, sy, sLayout);
         cv.style.transform = `scale(${s})`;
         root.style.setProperty('--s', s);
       }
