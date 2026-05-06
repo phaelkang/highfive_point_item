@@ -39,11 +39,10 @@
 
       .canvas {
         position: relative;
-        width: 1920px;
-        height: 1200px;
+        width: 100vw;
+        height: 100vh;
         background: #000;
         flex-shrink: 0;
-        transform-origin: center center;
       }
 
       /* ─── Logo ─── */
@@ -573,27 +572,6 @@
     </div>
 
     <script>
-      // Fit 1920x1200 canvas to viewport while keeping aspect.
-      // Skipped on mobile/portrait — CSS media query handles layout naturally.
-      const mobileMQ = window.matchMedia(
-        '(max-width: 800px), (orientation: portrait) and (max-width: 1280px)'
-      );
-
-      function fit() {
-        const cv = document.getElementById('canvas');
-        if (mobileMQ.matches) {
-          cv.style.transform = '';
-          return;
-        }
-        const sx = window.innerWidth / 1920;
-        const sy = window.innerHeight / 1200;
-        const s = Math.min(sx, sy);
-        cv.style.transform = `scale(${s})`;
-      }
-      window.addEventListener('resize', fit);
-      mobileMQ.addEventListener('change', fit);
-      fit();
-
       // ─── State: idle | qr ───
       const qrImageEl = document.getElementById('qrImage');
       const qrAreaEl = document.getElementById('qrArea');
