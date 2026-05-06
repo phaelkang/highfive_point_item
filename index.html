@@ -2,7 +2,19 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="HIGHFIVE 26" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="format-detection" content="telephone=no" />
     <title>HIGHFIVE 26 · Point Exchange</title>
     <link
       rel="stylesheet"
@@ -13,6 +25,7 @@
     <style>
       * {
         box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
       }
 
       html,
@@ -25,8 +38,14 @@
           BlinkMacSystemFont, 'Segoe UI', sans-serif;
         color: #fff;
         height: 100vh;
+        height: 100dvh;
         width: 100vw;
         overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+        overscroll-behavior: none;
       }
 
       .stage {
@@ -39,20 +58,24 @@
 
       .canvas {
         position: relative;
-        width: 100vw;
-        height: 100vh;
+        width: 1920px;
+        height: 1200px;
         background: #000;
         flex-shrink: 0;
+        transform-origin: center center;
       }
 
-      /* ─── Logo ─── */
+      /* ─── Logo (viewport-pinned top-left, scales with --s) ─── */
       .logo {
-        position: absolute;
-        top: 60px;
-        left: 60px;
+        position: fixed;
+        top: calc(60px * var(--s, 1));
+        left: calc(60px * var(--s, 1));
         width: 342.594px;
         height: 100px;
         overflow: hidden;
+        transform: scale(var(--s, 1));
+        transform-origin: top left;
+        z-index: 2;
       }
 
       .logo .group {
@@ -89,10 +112,10 @@
         height: 100%;
       }
 
-      /* ─── QR / Notice panel ─── */
+      /* ─── QR / Notice panel (inside canvas, scales with it) ─── */
       .qr-area {
         position: absolute;
-        top: 120px;
+        top: 248px;
         left: 50%;
         transform: translateX(-50%);
         width: 560px;
@@ -150,10 +173,10 @@
       /* QR display (when product selected) */
       .qr-area .qr-display {
         position: absolute;
-        top: 40px;
-        left: 40px;
-        width: 480px;
-        height: 480px;
+        top: 7.14%;
+        left: 7.14%;
+        width: 85.72%;
+        height: 85.72%;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
@@ -173,15 +196,17 @@
         object-fit: cover;
       }
 
-      /* ─── Items row ─── */
+      /* ─── Items row (viewport-pinned bottom-center, scales with --s) ─── */
       .items {
-        position: absolute;
-        bottom: 68px;
+        position: fixed;
+        bottom: calc(68px * var(--s, 1));
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) scale(var(--s, 1));
+        transform-origin: bottom center;
         display: flex;
         gap: 32px;
-        align-items: center;
+        align-items: flex-start;
+        z-index: 2;
       }
 
       .item {
@@ -359,20 +384,27 @@
           overflow-y: auto;
           height: auto;
           min-height: 100vh;
+          min-height: 100dvh;
+          padding-top: env(safe-area-inset-top);
+          padding-bottom: env(safe-area-inset-bottom);
         }
 
         .stage {
           position: static;
-          align-items: stretch;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: clamp(16px, 4vw, 28px);
+          box-sizing: border-box;
+          gap: clamp(20px, 5vw, 36px);
+          min-height: 100vh;
+          min-height: 100dvh;
         }
 
         .canvas {
-          width: 100vw;
+          width: auto;
           height: auto;
-          min-height: 100vh;
           transform: none !important;
-          padding: clamp(16px, 4vw, 28px);
-          box-sizing: border-box;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -381,6 +413,7 @@
 
         .logo {
           position: static;
+          transform: none;
           width: clamp(180px, 50vw, 280px);
           height: auto;
           aspect-ratio: 342.594 / 100;
@@ -392,13 +425,6 @@
           transform: none;
           width: min(86vw, 480px);
           height: min(86vw, 480px);
-        }
-
-        .qr-area .qr-display {
-          top: 7.14%;
-          left: 7.14%;
-          width: 85.72%;
-          height: 85.72%;
         }
 
         .qr-area .notice {
@@ -451,25 +477,25 @@
       }
     </style>
   </head>
-  <body>
+  <body data-mode="idle">
     <div class="stage">
-      <div class="canvas" id="canvas">
-        <!-- Logo -->
-        <div class="logo" aria-label="HIGHFIVE 26">
-          <div class="group group-main">
-            <img src="assets/logo-main.svg" alt="HIGHFIVE 26" />
-          </div>
-          <div class="group group-sub">
-            <img
-              src="assets/logo-sub.svg"
-              alt="WANTED CONFERENCE FOR HR&MAKERS"
-            />
-          </div>
-          <div class="group group-date">
-            <img src="assets/logo-date.svg" alt="MAY 12-13" />
-          </div>
+      <!-- Logo (viewport-pinned top-left) -->
+      <div class="logo" aria-label="HIGHFIVE 26">
+        <div class="group group-main">
+          <img src="assets/logo-main.svg" alt="HIGHFIVE 26" />
         </div>
+        <div class="group group-sub">
+          <img
+            src="assets/logo-sub.svg"
+            alt="WANTED CONFERENCE FOR HR&MAKERS"
+          />
+        </div>
+        <div class="group group-date">
+          <img src="assets/logo-date.svg" alt="MAY 12-13" />
+        </div>
+      </div>
 
+      <div class="canvas" id="canvas">
         <!-- QR / Notice -->
         <div class="qr-area" id="qrArea">
           <div class="notice">
@@ -485,89 +511,89 @@
             <img id="qrImage" alt="" />
           </div>
         </div>
+      </div>
 
-        <!-- Items -->
-        <div class="items" id="items">
-          <!-- 1. 이온밸런스 -->
-          <button type="button" class="item item-ion" data-id="ion" data-qr="assets/qr-ion.png">
-            <div class="card">
-              <div class="fill kv">
-                <div class="clip">
-                  <img src="assets/kv-bg.png" alt="" />
-                </div>
-              </div>
-              <div class="fill product">
-                <div class="clip">
-                  <img src="assets/ion.png" alt="" />
-                </div>
+      <!-- Items row (viewport-pinned bottom-center) -->
+      <div class="items" id="items">
+        <!-- 1. 이온밸런스 -->
+        <button type="button" class="item item-ion" data-id="ion" data-qr="assets/qr-ion.png">
+          <div class="card">
+            <div class="fill kv">
+              <div class="clip">
+                <img src="assets/kv-bg.png" alt="" />
               </div>
             </div>
-            <div class="label">
-              <p class="name">하루야채 이온밸런스</p>
-              <p class="price">2,000P</p>
+            <div class="fill product">
+              <div class="clip">
+                <img src="assets/ion.png" alt="" />
+              </div>
             </div>
-          </button>
+          </div>
+          <div class="label">
+            <p class="name">하루야채 이온밸런스</p>
+            <p class="price">2,000P</p>
+          </div>
+        </button>
 
-          <!-- 2. 스낵 -->
-          <button type="button" class="item item-snack" data-id="snack" data-qr="assets/qr-snack.png">
-            <div class="card">
-              <div class="fill kv">
-                <div class="clip">
-                  <img src="assets/kv-bg.png" alt="" />
-                </div>
-              </div>
-              <div class="fill product">
-                <div class="clip">
-                  <img src="assets/snack.png" alt="" />
-                </div>
+        <!-- 2. 스낵 -->
+        <button type="button" class="item item-snack" data-id="snack" data-qr="assets/qr-snack.png">
+          <div class="card">
+            <div class="fill kv">
+              <div class="clip">
+                <img src="assets/kv-bg.png" alt="" />
               </div>
             </div>
-            <div class="label">
-              <p class="name">스낵</p>
-              <p class="price">5,000P</p>
+            <div class="fill product">
+              <div class="clip">
+                <img src="assets/snack.png" alt="" />
+              </div>
             </div>
-          </button>
+          </div>
+          <div class="label">
+            <p class="name">스낵</p>
+            <p class="price">5,000P</p>
+          </div>
+        </button>
 
-          <!-- 3. 핸디선풍기 -->
-          <button type="button" class="item item-fan" data-id="fan" data-qr="assets/qr-fan.png">
-            <div class="card">
-              <div class="fill kv">
-                <div class="clip">
-                  <img src="assets/kv-bg.png" alt="" />
-                </div>
-              </div>
-              <div class="fill product">
-                <div class="clip">
-                  <img src="assets/fan.png" alt="" />
-                </div>
+        <!-- 3. 핸디선풍기 -->
+        <button type="button" class="item item-fan" data-id="fan" data-qr="assets/qr-fan.png">
+          <div class="card">
+            <div class="fill kv">
+              <div class="clip">
+                <img src="assets/kv-bg.png" alt="" />
               </div>
             </div>
-            <div class="label">
-              <p class="name">핸디선풍기</p>
-              <p class="price">20,000P</p>
+            <div class="fill product">
+              <div class="clip">
+                <img src="assets/fan.png" alt="" />
+              </div>
             </div>
-          </button>
+          </div>
+          <div class="label">
+            <p class="name">핸디선풍기</p>
+            <p class="price">20,000P</p>
+          </div>
+        </button>
 
-          <!-- 4. 보조배터리 -->
-          <button type="button" class="item item-battery" data-id="battery" data-qr="assets/qr-battery.png">
-            <div class="card">
-              <div class="fill kv">
-                <div class="clip">
-                  <img src="assets/kv-bg.png" alt="" />
-                </div>
-              </div>
-              <div class="fill product">
-                <div class="clip">
-                  <img src="assets/battery.png" alt="" />
-                </div>
+        <!-- 4. 보조배터리 -->
+        <button type="button" class="item item-battery" data-id="battery" data-qr="assets/qr-battery.png">
+          <div class="card">
+            <div class="fill kv">
+              <div class="clip">
+                <img src="assets/kv-bg.png" alt="" />
               </div>
             </div>
-            <div class="label">
-              <p class="name">보조배터리</p>
-              <p class="price">15,000P</p>
+            <div class="fill product">
+              <div class="clip">
+                <img src="assets/battery.png" alt="" />
+              </div>
             </div>
-          </button>
-        </div>
+          </div>
+          <div class="label">
+            <p class="name">보조배터리</p>
+            <p class="price">15,000P</p>
+          </div>
+        </button>
       </div>
     </div>
 
@@ -618,7 +644,28 @@
         if (e.key === 'Escape' && document.body.dataset.mode === 'qr') dismissQR();
       });
 
-      document.body.dataset.mode = 'idle';
+      // Fit 1920x1200 canvas to viewport (kiosk landscape)
+      const mobileMQ = window.matchMedia(
+        '(max-width: 800px), (orientation: portrait) and (max-width: 1280px)'
+      );
+
+      function fit() {
+        const cv = document.getElementById('canvas');
+        const root = document.documentElement;
+        if (mobileMQ.matches) {
+          cv.style.transform = '';
+          root.style.removeProperty('--s');
+          return;
+        }
+        const sx = window.innerWidth / 1920;
+        const sy = window.innerHeight / 1200;
+        const s = Math.min(sx, sy);
+        cv.style.transform = `scale(${s})`;
+        root.style.setProperty('--s', s);
+      }
+      window.addEventListener('resize', fit);
+      mobileMQ.addEventListener('change', fit);
+      fit();
     </script>
   </body>
 </html>
