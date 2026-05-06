@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HIGHFIVE 26 · Point Exchange</title>
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.4/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        font-family:
+          'Wanted Sans Variable', 'Wanted Sans', -apple-system,
+          BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #fff;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .canvas {
+        position: relative;
+        width: 1920px;
+        height: 1200px;
+        background: #000;
+        flex-shrink: 0;
+        transform-origin: center center;
+      }
+
+      /* ─── Logo ─── */
+      .logo {
+        position: absolute;
+        top: 60px;
+        left: 60px;
+        width: 342.594px;
+        height: 100px;
+        overflow: hidden;
+      }
+
+      .logo .group {
+        position: absolute;
+      }
+
+      .logo .group-main {
+        top: 0;
+        right: 0;
+        bottom: 55.89%;
+        left: 0.34%;
+      }
+
+      .logo .group-sub {
+        top: 63.07%;
+        right: 41.88%;
+        bottom: 0;
+        left: 0;
+      }
+
+      .logo .group-date {
+        top: 86.48%;
+        right: 0.12%;
+        bottom: 0.02%;
+        left: 74.59%;
+      }
+
+      .logo .group img {
+        position: absolute;
+        inset: 0;
+        display: block;
+        max-width: none;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* ─── QR / Notice panel ─── */
+      .qr-area {
+        position: absolute;
+        top: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 560px;
+        height: 560px;
+        background: #161616;
+        border-radius: 24px;
+        overflow: hidden;
+        transition: background 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      body[data-mode='qr'] .qr-area {
+        background: #fff;
+      }
+
+      .qr-area .notice {
+        position: absolute;
+        top: calc(50% + 3px);
+        left: calc(50% + 0.5px);
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        line-height: 0;
+        opacity: 1;
+        transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .qr-area .qr-icon {
+        width: 70px;
+        height: 70px;
+      }
+
+      .qr-area .qr-icon img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .qr-area .text {
+        font-family:
+          'Wanted Sans Variable', 'Wanted Sans', sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        line-height: 1.6;
+        color: #b4b4b4;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .qr-area .text p {
+        margin: 0;
+      }
+
+      /* QR display (when product selected) */
+      .qr-area .qr-display {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 480px;
+        height: 480px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      body[data-mode='qr'] .qr-area .notice {
+        opacity: 0;
+      }
+      body[data-mode='qr'] .qr-area .qr-display {
+        opacity: 1;
+      }
+
+      .qr-area .qr-display img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      /* ─── Items row ─── */
+      .items {
+        position: absolute;
+        bottom: 68px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 32px;
+        align-items: center;
+      }
+
+      .item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        font: inherit;
+        color: inherit;
+        transition:
+          opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+          transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      body[data-mode='qr'] .item:not(.is-active) {
+        opacity: 0.5;
+      }
+
+      body[data-mode='qr'] .item.is-active .card {
+        transform: scale(1.02);
+      }
+
+      .item .card {
+        width: 240px;
+        height: 240px;
+        background: #fff;
+        border-radius: 24px;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .item .label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        line-height: normal;
+      }
+
+      .item .name {
+        font-family:
+          'Wanted Sans Variable', 'Wanted Sans', sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        color: #fff;
+        white-space: nowrap;
+        margin: 0;
+      }
+
+      .item .price {
+        font-family:
+          'Wanted Sans Variable', 'Wanted Sans', sans-serif;
+        font-weight: 700;
+        font-size: 32px;
+        color: #fff;
+        white-space: nowrap;
+        margin: 0;
+        font-feature-settings: 'ss01';
+      }
+
+      /* ─── Image fill blocks ─── */
+      .fill {
+        position: absolute;
+      }
+
+      .fill > .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .fill > .clip > img {
+        position: absolute;
+        max-width: none;
+      }
+
+      /* All KV backgrounds share the same 242.5% size of card */
+      .item .kv {
+        width: 242.5%;
+        height: 242.5%;
+      }
+      .item .kv img {
+        height: 154.74%;
+        left: -61.62%;
+        top: -54.66%;
+        width: 275.09%;
+      }
+
+      /* Card 1: 이온밸런스 */
+      .item-ion .kv {
+        bottom: -75%;
+        right: -71.25%;
+      }
+      .item-ion .product {
+        aspect-ratio: 454 / 1038;
+        bottom: 7.81%;
+        left: 50%;
+        top: 7.81%;
+        transform: translateX(-50%);
+      }
+      .item-ion .product img {
+        height: 120.81%;
+        left: -88.11%;
+        top: -9.73%;
+        width: 276.21%;
+      }
+
+      /* Card 2: 스낵 */
+      .item-snack .kv {
+        bottom: -80%;
+        left: -50%;
+      }
+      .item-snack .product {
+        aspect-ratio: 140 / 233;
+        left: 28.13%;
+        right: 28.13%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .item-snack .product img {
+        height: 149.78%;
+        left: -74.4%;
+        top: -24.25%;
+        width: 248.81%;
+      }
+
+      /* Card 3: 핸디선풍기 */
+      .item-fan .kv {
+        right: 0;
+        top: -34.375%;
+      }
+      .item-fan .product {
+        aspect-ratio: 188 / 385;
+        left: 28.59%;
+        right: 28.59%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .item-fan .product img {
+        height: 118.96%;
+        left: -71.81%;
+        top: -10.13%;
+        width: 243.62%;
+      }
+
+      /* Card 4: 보조배터리 */
+      .item-battery .kv {
+        bottom: -109.6875%;
+        left: -71.25%;
+      }
+      .item-battery .product {
+        aspect-ratio: 587 / 945;
+        left: 25.62%;
+        right: 25.94%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .item-battery .product img {
+        height: 132.7%;
+        left: -55.88%;
+        top: -14.39%;
+        width: 213.63%;
+      }
+
+      /* ─── Responsive: mobile / portrait ─── */
+      @media (max-width: 800px), (orientation: portrait) and (max-width: 1280px) {
+        body {
+          overflow-y: auto;
+          height: auto;
+          min-height: 100vh;
+        }
+
+        .stage {
+          position: static;
+          align-items: stretch;
+        }
+
+        .canvas {
+          width: 100vw;
+          height: auto;
+          min-height: 100vh;
+          transform: none !important;
+          padding: clamp(16px, 4vw, 28px);
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: clamp(20px, 5vw, 36px);
+        }
+
+        .logo {
+          position: static;
+          width: clamp(180px, 50vw, 280px);
+          height: auto;
+          aspect-ratio: 342.594 / 100;
+          align-self: flex-start;
+        }
+
+        .qr-area {
+          position: static;
+          transform: none;
+          width: min(86vw, 480px);
+          height: min(86vw, 480px);
+        }
+
+        .qr-area .qr-display {
+          top: 7.14%;
+          left: 7.14%;
+          width: 85.72%;
+          height: 85.72%;
+        }
+
+        .qr-area .notice {
+          gap: clamp(14px, 3vw, 20px);
+        }
+
+        .qr-area .qr-icon {
+          width: clamp(48px, 10vw, 64px);
+          height: clamp(48px, 10vw, 64px);
+        }
+
+        .qr-area .text {
+          font-size: clamp(14px, 3.6vw, 18px);
+          white-space: normal;
+        }
+
+        .items {
+          position: static;
+          transform: none;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: clamp(16px, 4vw, 24px);
+          width: 100%;
+          max-width: 480px;
+        }
+
+        .item {
+          gap: clamp(10px, 2.5vw, 16px);
+          width: 100%;
+        }
+
+        .item .card {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 1;
+          border-radius: 10%;
+        }
+
+        .item .name {
+          font-size: clamp(13px, 3.2vw, 16px);
+        }
+
+        .item .price {
+          font-size: clamp(18px, 4.4vw, 22px);
+        }
+
+        body[data-mode='qr'] .item.is-active .card {
+          transform: scale(1.04);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="canvas" id="canvas">
+        <!-- Logo -->
+        <div class="logo" aria-label="HIGHFIVE 26">
+          <div class="group group-main">
+            <img src="assets/logo-main.svg" alt="HIGHFIVE 26" />
+          </div>
+          <div class="group group-sub">
+            <img
+              src="assets/logo-sub.svg"
+              alt="WANTED CONFERENCE FOR HR&MAKERS"
+            />
+          </div>
+          <div class="group group-date">
+            <img src="assets/logo-date.svg" alt="MAY 12-13" />
+          </div>
+        </div>
+
+        <!-- QR / Notice -->
+        <div class="qr-area" id="qrArea">
+          <div class="notice">
+            <div class="qr-icon">
+              <img src="assets/qr.svg" alt="" aria-hidden="true" />
+            </div>
+            <div class="text">
+              <p>교환을 원하는 상품을 선택 후</p>
+              <p>QR코드를 찍어 주세요.</p>
+            </div>
+          </div>
+          <div class="qr-display">
+            <img id="qrImage" alt="" />
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div class="items" id="items">
+          <!-- 1. 이온밸런스 -->
+          <button type="button" class="item item-ion" data-id="ion" data-qr="assets/qr-ion.png">
+            <div class="card">
+              <div class="fill kv">
+                <div class="clip">
+                  <img src="assets/kv-bg.png" alt="" />
+                </div>
+              </div>
+              <div class="fill product">
+                <div class="clip">
+                  <img src="assets/ion.png" alt="" />
+                </div>
+              </div>
+            </div>
+            <div class="label">
+              <p class="name">하루야채 이온밸런스</p>
+              <p class="price">2,000P</p>
+            </div>
+          </button>
+
+          <!-- 2. 스낵 -->
+          <button type="button" class="item item-snack" data-id="snack" data-qr="assets/qr-snack.png">
+            <div class="card">
+              <div class="fill kv">
+                <div class="clip">
+                  <img src="assets/kv-bg.png" alt="" />
+                </div>
+              </div>
+              <div class="fill product">
+                <div class="clip">
+                  <img src="assets/snack.png" alt="" />
+                </div>
+              </div>
+            </div>
+            <div class="label">
+              <p class="name">스낵</p>
+              <p class="price">5,000P</p>
+            </div>
+          </button>
+
+          <!-- 3. 핸디선풍기 -->
+          <button type="button" class="item item-fan" data-id="fan" data-qr="assets/qr-fan.png">
+            <div class="card">
+              <div class="fill kv">
+                <div class="clip">
+                  <img src="assets/kv-bg.png" alt="" />
+                </div>
+              </div>
+              <div class="fill product">
+                <div class="clip">
+                  <img src="assets/fan.png" alt="" />
+                </div>
+              </div>
+            </div>
+            <div class="label">
+              <p class="name">핸디선풍기</p>
+              <p class="price">20,000P</p>
+            </div>
+          </button>
+
+          <!-- 4. 보조배터리 -->
+          <button type="button" class="item item-battery" data-id="battery" data-qr="assets/qr-battery.png">
+            <div class="card">
+              <div class="fill kv">
+                <div class="clip">
+                  <img src="assets/kv-bg.png" alt="" />
+                </div>
+              </div>
+              <div class="fill product">
+                <div class="clip">
+                  <img src="assets/battery.png" alt="" />
+                </div>
+              </div>
+            </div>
+            <div class="label">
+              <p class="name">보조배터리</p>
+              <p class="price">15,000P</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Fit 1920x1200 canvas to viewport while keeping aspect.
+      // Skipped on mobile/portrait — CSS media query handles layout naturally.
+      const mobileMQ = window.matchMedia(
+        '(max-width: 800px), (orientation: portrait) and (max-width: 1280px)'
+      );
+
+      function fit() {
+        const cv = document.getElementById('canvas');
+        if (mobileMQ.matches) {
+          cv.style.transform = '';
+          return;
+        }
+        const sx = window.innerWidth / 1920;
+        const sy = window.innerHeight / 1200;
+        const s = Math.min(sx, sy);
+        cv.style.transform = `scale(${s})`;
+      }
+      window.addEventListener('resize', fit);
+      mobileMQ.addEventListener('change', fit);
+      fit();
+
+      // ─── State: idle | qr ───
+      const qrImageEl = document.getElementById('qrImage');
+      const qrAreaEl = document.getElementById('qrArea');
+      let dismissTimer = null;
+
+      function showQR(item) {
+        qrImageEl.src = item.dataset.qr;
+        document.body.dataset.mode = 'qr';
+        document.querySelectorAll('.item').forEach((el) =>
+          el.classList.toggle('is-active', el === item)
+        );
+        clearTimeout(dismissTimer);
+        dismissTimer = setTimeout(dismissQR, 5000);
+      }
+
+      function dismissQR() {
+        clearTimeout(dismissTimer);
+        document.body.dataset.mode = 'idle';
+        document.querySelectorAll('.item').forEach((el) =>
+          el.classList.remove('is-active')
+        );
+      }
+
+      // Item click → show QR
+      document.querySelectorAll('.item').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showQR(el);
+        });
+      });
+
+      // Click anywhere else (black background) → dismiss
+      document.addEventListener('click', () => {
+        if (document.body.dataset.mode === 'qr') dismissQR();
+      });
+
+      // Clicks inside QR panel itself should not dismiss
+      qrAreaEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      // ESC also dismisses
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.dataset.mode === 'qr') dismissQR();
+      });
+
+      document.body.dataset.mode = 'idle';
+    </script>
+  </body>
+</html>
