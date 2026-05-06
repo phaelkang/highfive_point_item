@@ -56,15 +56,6 @@
         justify-content: center;
       }
 
-      .canvas {
-        position: relative;
-        width: 1920px;
-        height: 1200px;
-        background: #000;
-        flex-shrink: 0;
-        transform-origin: center center;
-      }
-
       /* ─── Logo (viewport-pinned top-left, scales with --s) ─── */
       .logo {
         position: fixed;
@@ -112,18 +103,19 @@
         height: 100%;
       }
 
-      /* ─── QR / Notice panel (inside canvas, scales with it) ─── */
+      /* ─── QR / Notice panel (viewport-fixed, JS-positioned, scales via inline transform) ─── */
       .qr-area {
-        position: absolute;
-        top: 248px;
-        left: 50%;
-        transform: translateX(-50%);
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 560px;
         height: 560px;
         background: #161616;
         border-radius: 24px;
         overflow: hidden;
+        transform-origin: top left;
         transition: background 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        z-index: 1;
       }
 
       body[data-mode='qr'] .qr-area {
@@ -401,16 +393,6 @@
           min-height: 100dvh;
         }
 
-        .canvas {
-          width: auto;
-          height: auto;
-          transform: none !important;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: clamp(20px, 5vw, 36px);
-        }
-
         .logo {
           position: static;
           transform: none;
@@ -421,10 +403,12 @@
         }
 
         .qr-area {
-          position: static;
-          transform: none;
-          width: min(86vw, 480px);
-          height: min(86vw, 480px);
+          position: static !important;
+          top: auto !important;
+          left: auto !important;
+          transform: none !important;
+          width: min(86vw, 480px) !important;
+          height: min(86vw, 480px) !important;
         }
 
         .qr-area .notice {
@@ -495,21 +479,19 @@
         </div>
       </div>
 
-      <div class="canvas" id="canvas">
-        <!-- QR / Notice -->
-        <div class="qr-area" id="qrArea">
-          <div class="notice">
-            <div class="qr-icon">
-              <img src="assets/qr.svg" alt="" aria-hidden="true" />
-            </div>
-            <div class="text">
-              <p>교환을 원하는 상품을 선택 후</p>
-              <p>QR코드를 찍어 주세요.</p>
-            </div>
+      <!-- QR / Notice (viewport-pinned, vertically centered between logo and items) -->
+      <div class="qr-area" id="qrArea">
+        <div class="notice">
+          <div class="qr-icon">
+            <img src="assets/qr.svg" alt="" aria-hidden="true" />
           </div>
-          <div class="qr-display">
-            <img id="qrImage" alt="" />
+          <div class="text">
+            <p>교환을 원하는 상품을 선택 후</p>
+            <p>QR코드를 찍어 주세요.</p>
           </div>
+        </div>
+        <div class="qr-display">
+          <img id="qrImage" alt="" />
         </div>
       </div>
 
@@ -644,16 +626,19 @@
         if (e.key === 'Escape' && document.body.dataset.mode === 'qr') dismissQR();
       });
 
-      // Fit 1920x1200 canvas to viewport (kiosk landscape)
+      // Fit 1920x1200 design to viewport (kiosk landscape)
       const mobileMQ = window.matchMedia(
         '(max-width: 800px), (orientation: portrait) and (max-width: 1280px)'
       );
 
       function fit() {
-        const cv = document.getElementById('canvas');
         const root = document.documentElement;
+        const qrEl = document.getElementById('qrArea');
+        const itemsEl = document.getElementById('items');
         if (mobileMQ.matches) {
-          cv.style.transform = '';
+          qrEl.style.top = '';
+          qrEl.style.left = '';
+          qrEl.style.transform = '';
           root.style.removeProperty('--s');
           return;
         }
@@ -661,17 +646,24 @@
         const H = window.innerHeight;
         const sx = W / 1920;
         const sy = H / 1200;
-        // Items are viewport-pinned at the bottom; cap scale so they don't
-        // overlap the QR area (which sits inside the centered, scaled canvas).
-        // QR bottom (viewport y) = H/2 + 208·s
-        // Items top (viewport y) = H − (itemsH + 68)·s
-        // Require gap G ⇒ s ≤ (H/2 − G) / (itemsH + 276)
-        const itemsEl = document.getElementById('items');
+        // Layout (viewport y, scaled by s):
+        //   logo bottom = (60 + 100)·s = 160·s
+        //   items top   = H − (itemsH + 68)·s
+        //   QR (560×560 unscaled) is placed midway between, so the gap above
+        //   and below QR is identical: gap = (H − (itemsH + 788)·s) / 2.
+        //   Require min gap G ⇒ s ≤ (H − 2G) / (itemsH + 788).
         const itemsH = itemsEl.offsetHeight;
         const GAP = 48;
-        const sLayout = (H / 2 - GAP) / (itemsH + 276);
+        const sLayout = (H - 2 * GAP) / (itemsH + 788);
         const s = Math.min(sx, sy, sLayout);
-        cv.style.transform = `scale(${s})`;
+        const logoBottom = 160 * s;
+        const itemsTop = H - (itemsH + 68) * s;
+        const qrSize = 560 * s;
+        const qrTop = (logoBottom + itemsTop) / 2 - qrSize / 2;
+        const qrLeft = (W - qrSize) / 2;
+        qrEl.style.top = qrTop + 'px';
+        qrEl.style.left = qrLeft + 'px';
+        qrEl.style.transform = `scale(${s})`;
         root.style.setProperty('--s', s);
       }
       window.addEventListener('resize', fit);
